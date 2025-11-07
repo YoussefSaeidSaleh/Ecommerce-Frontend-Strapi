@@ -1,0 +1,36 @@
+{
+  "name": "ecommerce",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "dev:no-turbo": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.26.0",
+    "@react-email/components": "0.4.0",
+    "@stripe/react-stripe-js": "^3.9.0",
+    "@stripe/stripe-js": "^7.8.0",
+    "axios": "^1.10.0",
+    "lucide-react": "^0.525.0",
+    "nanoid": "^5.1.5",
+    "next": "^15.3.2",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "react-loading-skeleton": "^3.5.0",
+    "resend": "^4.7.0",
+    "stripe": "13.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.1.0",
+    "@types/react": "19.1.8",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "react-email": "4.2.7",
+    "tailwindcss": "^3.4.1",
+    "typescript": "5.8.3"
+  }
+}
