@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 
 type EnvFn = {
   (key: string, defaultValue?: any): any;
@@ -6,17 +7,20 @@ type EnvFn = {
   bool: (key: string, defaultValue?: any) => boolean;
 };
 
-type SSLConfig = {
-  key?: string | undefined;
-  cert?: string | undefined;
-  ca?: string | undefined;
-  capath?: string | undefined;
-  cipher?: string | undefined;
-  rejectUnauthorized?: boolean | undefined;
-};
-
 export default ({ env }: { env: EnvFn }) => {
   const client = (env("DATABASE_CLIENT", "sqlite") as string) || "sqlite";
+
+  const useSsl = env.bool("DATABASE_SSL", true);
+
+  // اقرأ الـ CA من الـ root باستخدام process.cwd() عشان يشتغل في src و dist
+  const caPath = path.join(process.cwd(), "ca-cert.pem");
+  const ca = useSsl ? fs.readFileSync(caPath).toString() : undefined;
+
+  const sslOption = useSsl
+    ? ca
+      ? { rejectUnauthorized: true, ca }  // تحقق آمن باستخدام CA
+      : { rejectUnauthorized: false }     // بدون تحقق (للتجربة بس)
+    : false;
 
   const mysql = {
     connection: {
@@ -25,19 +29,14 @@ export default ({ env }: { env: EnvFn }) => {
       database: env("DATABASE_NAME", "strapi"),
       user: env("DATABASE_USERNAME", "strapi"),
       password: env("DATABASE_PASSWORD", "strapi"),
-      ssl:
-        env.bool("DATABASE_SSL", false) &&
-        ({
-          key: env("DATABASE_SSL_KEY", undefined),
-          cert: env("DATABASE_SSL_CERT", undefined),
-          ca: env("DATABASE_SSL_CA", undefined),
-          capath: env("DATABASE_SSL_CAPATH", undefined),
-          cipher: env("DATABASE_SSL_CIPHER", undefined),
-          rejectUnauthorized: env.bool(
-            "DATABASE_SSL_REJECT_UNAUTHORIZED",
-            true
-          ),
-        } as SSLConfig),
+      ssl: env.bool("DATABASE_SSL", false) && {
+        key: env("DATABASE_SSL_KEY", undefined),
+        cert: env("DATABASE_SSL_CERT", undefined),
+        ca: env("DATABASE_SSL_CA", undefined),
+        capath: env("DATABASE_SSL_CAPATH", undefined),
+        cipher: env("DATABASE_SSL_CIPHER", undefined),
+        rejectUnauthorized: env.bool("DATABASE_SSL_REJECT_UNAUTHORIZED", true),
+      },
     },
     pool: {
       min: env.int("DATABASE_POOL_MIN", 2),
@@ -53,19 +52,7 @@ export default ({ env }: { env: EnvFn }) => {
       database: env("DATABASE_NAME", "strapi"),
       user: env("DATABASE_USERNAME", "strapi"),
       password: env("DATABASE_PASSWORD", "strapi"),
-      ssl:
-        env.bool("DATABASE_SSL", false) &&
-        ({
-          key: env("DATABASE_SSL_KEY", undefined),
-          cert: env("DATABASE_SSL_CERT", undefined),
-          ca: env("DATABASE_SSL_CA", undefined),
-          capath: env("DATABASE_SSL_CAPATH", undefined),
-          cipher: env("DATABASE_SSL_CIPHER", undefined),
-          rejectUnauthorized: env.bool(
-            "DATABASE_SSL_REJECT_UNAUTHORIZED",
-            true
-          ),
-        } as SSLConfig),
+      ssl: sslOption,
       schema: env("DATABASE_SCHEMA", "public"),
     },
     pool: {
