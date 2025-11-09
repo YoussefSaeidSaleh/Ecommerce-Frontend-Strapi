@@ -1,35 +1,43 @@
 // app/api/send-email/route.js
 import { EmailTemplate } from "../../_components/email-template.jsx";
 
-export async function POST(request) {
+export const dynamic = 'force-dynamic'; // اجعل الـ route ديناميكيًا (لا يُبنى static)
+
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { to, subject, html, text } = body;
 
-    // تحقق من وجود المفتاح قبل أي شيء
+    // 1. تحقق من وجود المفتاح أولاً
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
-      console.error("❌ RESEND_API_KEY is missing");
-      return new Response(JSON.stringify({ ok: false, error: "RESEND_API_KEY is missing" }), { status: 500, headers: { "Content-Type": "application/json" } });
+      console.error("RESEND_API_KEY is missing in environment");
+      return Response.json(
+        { ok: false, error: "Server configuration error" },
+        { status: 500 }
+      );
     }
 
-    // dynamic import + fallback handling عشان نتعامل مع أي شكل تصدير للحزمة
-    const mod = await import("resend");
-    const Resend = mod.Resend || mod.default || mod;
+    // 2. استورد المكتبة ديناميكيًا (لا يُستورد أثناء الـ build إذا لم يُنفّذ الـ route)
+    const { Resend } = await import("resend");
     const resend = new Resend(apiKey);
 
+    // 3. إرسال الإيميل
     const result = await resend.emails.send({
-      from: "onboarding@yourdomain.com",
-      to: to || ["youssefsaidk123@gmail.com"],
-      subject: subject || "Hello world",
+      from: "onboarding@yourdomain.com", // غيّر إلى دومينك المعتمد في Resend
+      to: to ?? ["youssefsaidk123@gmail.com"],
+      subject: subject ?? "Hello world",
       react: EmailTemplate({ firstName: "John" }),
       html,
       text,
     });
 
-    return new Response(JSON.stringify({ ok: true, data: result }), { status: 200, headers: { "Content-Type": "application/json" } });
-  } catch (err) {
+    return Response.json({ ok: true, data: result });
+  } catch (err: any) {
     console.error("Send-email error:", err);
-    return new Response(JSON.stringify({ ok: false, error: "Internal Server Error" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return Response.json(
+      { ok: false, error: err.message || "Failed to send email" },
+      { status: 500 }
+    );
   }
 }
